@@ -1,0 +1,6 @@
+vulnerabilities:
+- id: CVE-2026-47884
+  statement: 'Not affected: application defines REST controllers only, no XsltView,
+    wildcard view-rendering handler, or view-name resolution. Review again if MVC
+    views are introduced. See docs/security-exceptions.md.'
+  expired_at: '2026-11-08T00:00:00Z'
