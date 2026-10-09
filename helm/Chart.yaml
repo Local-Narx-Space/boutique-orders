@@ -1,0 +1,6 @@
+apiVersion: v2
+name: boutique-orders
+description: Production delivery chart for Boutique orders
+type: application
+version: 0.1.0
+appVersion: bootstrap
