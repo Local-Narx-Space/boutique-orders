@@ -1,5 +1,5 @@
 package dev.boutique.orders;
-import com.fasterxml.jackson.databind.*;
+import tools.jackson.databind.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +27,7 @@ public class OrdersController {
   var prices=new HashMap<String,JsonNode>();get(catalogue+"/products",rid).forEach(p->prices.put(p.path("id").asText(),p));
   var items=new ArrayList<Map<String,Object>>();int total=0;
   for(var i:requested){String id=i.path("productId").asText();int q=i.path("quantity").asInt();var p=prices.get(id);if(p==null||q<1||q>20)throw new ResponseStatusException(HttpStatus.CONFLICT,"invalid_cart");int price=p.path("price").asInt();if(price<=0||!p.path("currency").asText().equals("USD"))throw new ResponseStatusException(HttpStatus.CONFLICT);total=Math.addExact(total,Math.multiplyExact(price,q));items.add(Map.of("productId",id,"name",p.path("name").asText(),"quantity",q,"price",price));}
-  try{db.update("INSERT INTO orders(id,session_id,idempotency_key,total,currency,items) VALUES (?,?,?,?,?,?::jsonb)",UUID.randomUUID(),session,key,total,"USD",mapper.writeValueAsString(items));}catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalStateException(e);}
+  try{db.update("INSERT INTO orders(id,session_id,idempotency_key,total,currency,items) VALUES (?,?,?,?,?,?::jsonb)",UUID.randomUUID(),session,key,total,"USD",mapper.writeValueAsString(items));}catch(tools.jackson.core.JacksonException e){throw new IllegalStateException(e);}
   return decode(find(session,key).getFirst());
  }
  @GetMapping("/orders/{id}") public Map<String,Object> read(@PathVariable UUID id,@RequestHeader("X-Session-ID")String session){validateSession(session);var rows=db.queryForList("SELECT id,total,currency,items,created_at FROM orders WHERE id=? AND session_id=?",id,session);if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND);return decode(rows.getFirst());}
