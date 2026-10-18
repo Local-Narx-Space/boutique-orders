@@ -59,6 +59,26 @@ deployment:
             secretKeyRef:
               name: orders-database
               key: password
+        - name: COMMERCE_ENABLED
+          value: 'false'
+        - name: RAZORPAY_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: orders-payments
+              key: key-id
+              optional: true
+        - name: RAZORPAY_KEY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: orders-payments
+              key: key-secret
+              optional: true
+        - name: RAZORPAY_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: orders-payments
+              key: webhook-secret
+              optional: true
         resources:
           requests:
             cpu: 100m
