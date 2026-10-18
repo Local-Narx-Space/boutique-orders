@@ -33,6 +33,19 @@ class RazorpayClient {
             throw new IllegalStateException("Unapproved payment API endpoint");
     }
     boolean enabled(){return keyId.startsWith("rzp_test_")&&!secret.isEmpty()&&!webhookSecret.isEmpty();}
+    boolean fixtureEnabled(){return keyId.equals("rzp_test_fixture")&&"true".equals(System.getenv("ALLOW_PAYMENT_TEST_FIXTURE"));}
+    JsonNode fixtureCapture(String providerOrderId){
+        if(!fixtureEnabled())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"not_found");
+        String id=identifier(providerOrderId,"order_");
+        try {
+            var uri=URI.create(base.substring(0,base.length()-3)+"/_capture/"+id);
+            var response=client.send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(3)).GET().build(),HttpResponse.BodyHandlers.ofString());
+            if(response.statusCode()<200||response.statusCode()>=300)throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"payment_provider_rejected");
+            return mapper.readTree(response.body());
+        }catch(InterruptedException e){Thread.currentThread().interrupt();throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"payment_provider_unavailable");}
+        catch(ResponseStatusException e){throw e;}
+        catch(Exception e){throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"payment_provider_unavailable");}
+    }
     void requireEnabled(){if(!enabled())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"payments_not_configured");}
 
     JsonNode request(String method,String path,Object payload,String refundKey) {

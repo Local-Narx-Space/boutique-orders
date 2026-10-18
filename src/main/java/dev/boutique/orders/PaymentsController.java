@@ -25,7 +25,7 @@ class PaymentsController {
         if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"order_not_found");
         return rows.getFirst();
     }
-    @GetMapping("/payments/config") Object config(){return Map.of("enabled",provider.enabled(),"mode","test");}
+    @GetMapping("/payments/config") Object config(){return Map.of("enabled",provider.enabled(),"mode",provider.fixtureEnabled()?"fixture":"test");}
 
     @PostMapping("/orders/{id}/payment")
     Object begin(@PathVariable UUID id,@RequestHeader(value="X-Account-Token",required=false)String token){
@@ -50,7 +50,16 @@ class PaymentsController {
     }
     private Object checkout(Map<String,Object> row,String remoteId){
         if(!"payment_pending".equals(row.get("status")))throw conflict("order_not_payable");
-        return Map.of("keyId",provider.keyId,"providerOrderId",remoteId,"amount",row.get("total"),"currency",row.get("currency"),"mode","test");
+        return Map.of("keyId",provider.keyId,"providerOrderId",remoteId,"amount",row.get("total"),"currency",row.get("currency"),"mode",provider.fixtureEnabled()?"fixture":"test");
+    }
+    @PostMapping("/orders/{id}/payment/fixture-capture")
+    Object fixtureCapture(@PathVariable UUID id,@RequestHeader(value="X-Account-Token",required=false)String token){
+        if(!provider.fixtureEnabled())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"not_found");
+        var row=owned(id,token);
+        if(!"payment_pending".equals(row.get("status"))||!"awaiting_payment".equals(row.get("payment_status")))throw conflict("order_not_payable");
+        String remote=(String)row.get("provider_order_id");
+        if(remote==null)throw conflict("payment_not_initialized");
+        return provider.fixtureCapture(remote);
     }
     private void validateRemoteOrder(Map<String,Object> row,JsonNode remote){
         if(remote.path("amount").asInt()!=((Number)row.get("total")).intValue()
